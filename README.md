@@ -1,4 +1,2 @@
-# dockershinyapp
-Basic functionality for running a shiny application from a github repo on your local machine.
-
-Readmetest
+# phenoRemote
+integrate Phenocam &amp; remotely sensed data products

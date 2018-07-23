@@ -1,27 +1,46 @@
-FROM r-base:latest
+#--------------------------------------------------------------------------------------------------------------------------------------
 
-MAINTAINER Winston Chang "winston@rstudio.com"
+FROM openanalytics/r-base
 
-## Install dependencies and Download and install shiny server
-
-## See https://www.rstudio.com/products/shiny/download-server/ for the
-## instructions followed here.
-
-RUN apt-get update && apt-get install -y -t unstable \
+# system libraries of general use
+RUN apt-get update && apt-get install -y \
     sudo \
-    gdebi-core \
     pandoc \
     pandoc-citeproc \
     libcurl4-gnutls-dev \
-    libcairo2-dev/unstable \
-    libxt-dev && \
-    wget --no-verbose https://download3.rstudio.org/ubuntu-14.04/x86_64/VERSION -O "version.txt" && \
+    libcairo2-dev \
+    libxt-dev \
+    libssl-dev \
+    libssh2-1-dev \
+    libssl-dev
+
+# RUN add-apt-repository -y ppa:opencpu/jq
+
+# system library dependency for the phenocam app
+RUN apt-get update && apt-get install -y \
+    libmpfr-dev \
+    libgit2-dev \
+    libprotobuf-dev \
+    libxml2-dev \
+    libmagick++-dev \
+    libv8-3.14-dev \
+    gdebi-core 
+
+# Shiny server
+RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-14.04/x86_64/VERSION -O "version.txt" && \
     VERSION=$(cat version.txt)  && \
-    wget --no-verbose "https://download3.rstudio.org/ubuntu-14.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
+    wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-14.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
     gdebi -n ss-latest.deb && \
-    rm -f version.txt ss-latest.deb && \
-    R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cran.rstudio.com/')" && \
-    cp -R /usr/local/lib/R/site-library/shiny/examples/* /srv/shiny-server/ && \
+    rm -f version.txt ss-latest.deb
+
+# basic shiny functionality
+RUN R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cloud.r-project.org/')"
+
+# install dependencies of the phenocam app
+RUN R -e "install.packages(c('leaflet','dplyr','magick','readr','RColorBrewer','scales','lattice','shinyjs','leaflet.extras','sp','rvest','raster','DT','htmlwidgets'), repos='https://cloud.r-project.org/')"
+
+# shiny examples     
+RUN cp -R /usr/local/lib/R/site-library/shiny/examples/* /srv/shiny-server/ && \
     rm -rf /var/lib/apt/lists/*
 
 EXPOSE 3838
@@ -37,3 +56,6 @@ COPY shiny-server.sh /usr/bin/shiny-server.sh
 # COPY shiny-customized.config /etc/shiny-server/shiny-server.conf
 
 CMD ["/usr/bin/shiny-server.sh"]
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------
